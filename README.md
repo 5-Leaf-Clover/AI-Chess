@@ -4,13 +4,12 @@
 Project Proposal & Project Plan 
 A local two-player and player-vs-AI chess application with benchmarked, tiered AI opponents Team Project — Five Members  |  Estimated duration: ~4.5 months to checkpoint, 6 months to final delivery 
 
- Project Overview 
+# Project Overview 
  This project is a playable chess application supporting local two-player games and player-versus-AI games. Its defining feature is a set of AI opponents built at increasing levels of sophistication, from simple random move selection up through alpha-beta search with a tuned evaluation function. Because the AI tiers are designed to be directly comparable, the project doubles as its own evaluation study: the team can run AI-vs-AI tournaments between tiers and use the results as the analytical backbone of the final report. 
 
  This structure gives the team two things that are often hard to get simultaneously in a course project: a clear, demo-able product at every milestone, and a built-in research question — how much does each layer of AI sophistication actually improve play — that doesn't require external data or additional scope to answer.
 
-
-Design Rationale
+# Design Rationale
 Why tiered AI, specifically?
 
 Rather than building one "best" AI, the team builds a ladder of opponents (Tier 1 through Tier 4) that share the same interface and can be swapped in and out against the same engine. This has a few practical benefits: 
