@@ -1,8 +1,7 @@
 # AI-Chess
 2D Chess with AI Opponents
 
-Project Proposal & Project Plan 
-A local two-player and player-vs-AI chess application with benchmarked, tiered AI opponents Team Project — Five Members  |  Estimated duration: ~4.5 months to checkpoint, 6 months to final delivery 
+ A local two-player and player-vs-AI chess application with benchmarked, tiered AI opponents Team Project — Five Members  |  Estimated duration: ~4.5 months to checkpoint, 6 months to final delivery 
 
 # Project Overview 
  This project is a playable chess application supporting local two-player games and player-versus-AI games. Its defining feature is a set of AI opponents built at increasing levels of sophistication, from simple random move selection up through alpha-beta search with a tuned evaluation function. Because the AI tiers are designed to be directly comparable, the project doubles as its own evaluation study: the team can run AI-vs-AI tournaments between tiers and use the results as the analytical backbone of the final report. 
