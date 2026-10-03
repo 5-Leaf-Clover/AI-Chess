@@ -16,42 +16,56 @@ def draw_board():
         column = i % 4
         row = i // 4
         if row % 2 == 0:
-            pygame.draw.rect(screen, 'light gray', [600 - (column * 200), row * 100, 100, 100])
+            pygame.draw.rect(screen, 'light gray', [px(600) - (column * px(200)), row * SQUARE, SQUARE, SQUARE])
         else:
-            pygame.draw.rect(screen, 'light gray', [700 - (column * 200), row * 100, 100, 100])
-        pygame.draw.rect(screen, 'gray', [0, 800, WIDTH, 100])
-        pygame.draw.rect(screen, 'gold', [0, 800, WIDTH, 100], 5)
-        pygame.draw.rect(screen, 'gold', [800, 0, 200, HEIGHT], 5)
-        for i in range(9):
-            pygame.draw.line(screen, 'black', (0, 100 * i), (800, 100 * i), 2)
-            pygame.draw.line(screen, 'black', (100 * i, 0), (100 * i, 800), 2)
-        screen.blit(medium_font.render('FORFEIT', True, 'black'), (810, 830))
-        if white_promote or black_promote:
-            pygame.draw.rect(screen, 'gray', [0, 800, WIDTH - 200, 100])
-            pygame.draw.rect(screen, 'gold', [0, 800, WIDTH - 200, 100], 5)
-            screen.blit(big_font.render('Select Piece to Promote Pawn', True, 'black'), (20, 820))
+            pygame.draw.rect(screen, 'light gray', [px(700) - (column * px(200)), row * SQUARE, SQUARE, SQUARE])
+    pygame.draw.rect(screen, 'gold', [px(800), 0, px(200), HEIGHT], max(2, px(5)))
+    for i in range(9):
+        pygame.draw.line(screen, 'black', (0, SQUARE * i), (px(800), SQUARE * i), max(1, px(2)))
+        pygame.draw.line(screen, 'black', (SQUARE * i, 0), (SQUARE * i, px(800)), max(1, px(2)))
+    draw_forfeit_button()
 
 
-# trigger a pop-up message (whose-turn notice or illegal-move warning)
-def show_popup(message, color='gold'):
-    global popup_message, popup_color, popup_timer
+# SECTION 6 UI refinement: the forfeit button now lives beside the board (the
+# bottom of the right-hand sidebar), instead of in a strip underneath it.
+def draw_forfeit_button():
+    box = [px(800), px(700), px(200), px(100)]
+    pygame.draw.rect(screen, 'gray', box)
+    pygame.draw.rect(screen, 'gold', box, max(2, px(4)))
+    text_surface = font.render('FORFEIT', True, 'black')
+    text_rect = text_surface.get_rect(center=(box[0] + box[2] // 2, box[1] + box[3] // 2))
+    screen.blit(text_surface, text_rect)
+
+
+# trigger a pop-up message. kind is one of 'turn', 'illegal', 'check' -
+# checkmate/stalemate use the dedicated "Grand Win" banner instead (see
+# evaluate_game_end / draw_game_over) so we never stack two notifications.
+def show_popup(message, color='gold', kind='turn'):
+    global popup_message, popup_color, popup_timer, popup_type
     popup_message = message
     popup_color = color
+    popup_type = kind
     popup_timer = POPUP_DURATION
 
 
-# draw the active pop-up message (if any) over the top of the board
+# draw the active pop-up message (if any) over the top of the board.
+# 'check' pop-ups get a red accent border plus a brief red screen-edge flash
+# so they read as higher priority than an ordinary turn-change toast.
 def draw_popup():
     global popup_timer
     if popup_timer > 0:
-        box_width, box_height = 460, 70
-        box_x = (800 - box_width) // 2
-        box_y = 15
+        box_width, box_height = px(460), px(70)
+        box_x = (px(800) - box_width) // 2
+        box_y = px(15)
+        accent = 'red' if popup_type == 'check' else popup_color
+        border_width = max(3, px(7)) if popup_type == 'check' else max(2, px(5))
         pygame.draw.rect(screen, 'black', [box_x, box_y, box_width, box_height])
-        pygame.draw.rect(screen, popup_color, [box_x, box_y, box_width, box_height], 5)
+        pygame.draw.rect(screen, accent, [box_x, box_y, box_width, box_height], border_width)
         text_surface = medium_font.render(popup_message, True, 'white')
         text_rect = text_surface.get_rect(center=(box_x + box_width // 2, box_y + box_height // 2))
         screen.blit(text_surface, text_rect)
+        if popup_type == 'check' and counter < 15:
+            pygame.draw.rect(screen, 'red', [0, 0, px(800), HEIGHT], max(2, px(6)))
         popup_timer -= 1
 
 
@@ -60,32 +74,33 @@ def draw_pieces():
     for i in range(len(white_pieces)):
         index = piece_list.index(white_pieces[i])
         if white_pieces[i] == 'pawn':
-            screen.blit(white_pawn, (white_locations[i][0] * 100 + 22, white_locations[i][1] * 100 + 30))
+            screen.blit(white_pawn, (white_locations[i][0] * SQUARE + px(22), white_locations[i][1] * SQUARE + px(30)))
         else:
-            screen.blit(white_images[index], (white_locations[i][0] * 100 + 10, white_locations[i][1] * 100 + 10))
+            screen.blit(white_images[index], (white_locations[i][0] * SQUARE + px(10), white_locations[i][1] * SQUARE + px(10)))
         if turn_step < 2:
             if selection == i:
-                pygame.draw.rect(screen, 'red', [white_locations[i][0] * 100 + 1, white_locations[i][1] * 100 + 1,
-                                                 100, 100], 2)
+                pygame.draw.rect(screen, 'red', [white_locations[i][0] * SQUARE + px(1), white_locations[i][1] * SQUARE + px(1),
+                                                 SQUARE, SQUARE], max(1, px(2)))
 
     for i in range(len(black_pieces)):
         index = piece_list.index(black_pieces[i])
         if black_pieces[i] == 'pawn':
-            screen.blit(black_pawn, (black_locations[i][0] * 100 + 22, black_locations[i][1] * 100 + 30))
+            screen.blit(black_pawn, (black_locations[i][0] * SQUARE + px(22), black_locations[i][1] * SQUARE + px(30)))
         else:
-            screen.blit(black_images[index], (black_locations[i][0] * 100 + 10, black_locations[i][1] * 100 + 10))
+            screen.blit(black_images[index], (black_locations[i][0] * SQUARE + px(10), black_locations[i][1] * SQUARE + px(10)))
         if turn_step >= 2:
             if selection == i:
-                pygame.draw.rect(screen, 'blue', [black_locations[i][0] * 100 + 1, black_locations[i][1] * 100 + 1,
-                                                  100, 100], 2)
+                pygame.draw.rect(screen, 'blue', [black_locations[i][0] * SQUARE + px(1), black_locations[i][1] * SQUARE + px(1),
+                                                  SQUARE, SQUARE], max(1, px(2)))
 
 
 # function to check all pieces valid options on board
-def check_options(pieces, locations, turn):
-    global castling_moves
+# include_castling=False is used internally (see check_castling) to get a
+# plain attack map without recursing back into castling legality checks.
+def check_options(pieces, locations, turn, include_castling=True):
+    global white_castle_moves, black_castle_moves
     moves_list = []
     all_moves_list = []
-    castling_moves = []
     for i in range((len(pieces))):
         location = locations[i]
         piece = pieces[i]
@@ -100,15 +115,25 @@ def check_options(pieces, locations, turn):
         elif piece == 'queen':
             moves_list = check_queen(location, turn)
         elif piece == 'king':
-            moves_list, castling_moves = check_king(location, turn)
+            moves_list, castle_moves = check_king(location, turn, include_castling)
+            if include_castling:
+                # BUGFIX: this used to be stored in a single shared global
+                # that white's computation (always run last each turn cycle)
+                # unconditionally overwrote, so black's own castling options
+                # were invisible to the click handler on black's turn. Each
+                # color now keeps its own list.
+                if turn == 'white':
+                    white_castle_moves = castle_moves
+                else:
+                    black_castle_moves = castle_moves
         all_moves_list.append(moves_list)
     return all_moves_list
 
 
 # check king valid moves
-def check_king(position, color):
+def check_king(position, color, include_castling=True):
     moves_list = []
-    castle_moves = check_castling()
+    castle_moves = check_castling(color) if include_castling else []
     if color == 'white':
         enemies_list = black_locations
         friends_list = white_locations
@@ -263,14 +288,162 @@ def check_knight(position, color):
     return moves_list
 
 
-# check for valid moves for just selected piece
+
+
+# --- SECTION 3: proper check / legal-move / checkmate / stalemate handling -
+# A pseudo-legal move (from check_options) only obeys how a piece is allowed
+# to travel. It says nothing about whether making that move would leave your
+# own king under attack. The functions below simulate each candidate move on
+# a scratch copy of the board and reject any that leave (or put) the mover's
+# own king in check - this is what actually catches pins, and lets us detect
+# checkmate/stalemate instead of only noticing a king has been captured.
+
+def _king_square(pieces, locations):
+    if 'king' in pieces:
+        return locations[pieces.index('king')]
+    return None
+
+
+def move_leaves_king_in_check(mover_color, from_index, to_square):
+    """Simulate one move and report whether the mover's own king would be
+    left in check afterward (covers pins and en-passant discoveries).
+
+    Note: the movement-checking functions below (check_bishop, check_rook,
+    etc.) read the board off the module-level white_/black_ globals rather
+    than any arguments passed to them, so a plain "pass in copies" approach
+    wouldn't actually be evaluated against the simulated position. Instead,
+    we build the simulated lists, temporarily swap them into those globals,
+    ask check_options for the resulting attack map, then restore the real
+    board - guaranteeing the simulation is evaluated correctly.
+    """
+    global white_pieces, white_locations, black_pieces, black_locations
+    real_white_pieces, real_white_locations = white_pieces, white_locations
+    real_black_pieces, real_black_locations = black_pieces, black_locations
+
+    sim_white_pieces, sim_white_locations = white_pieces[:], white_locations[:]
+    sim_black_pieces, sim_black_locations = black_pieces[:], black_locations[:]
+
+    if mover_color == 'white':
+        own_pieces, own_locations = sim_white_pieces, sim_white_locations
+        enemy_pieces, enemy_locations = sim_black_pieces, sim_black_locations
+        ep_square, ep_rank_step = black_ep, -1
+    else:
+        own_pieces, own_locations = sim_black_pieces, sim_black_locations
+        enemy_pieces, enemy_locations = sim_white_pieces, sim_white_locations
+        ep_square, ep_rank_step = white_ep, 1
+
+    moving_piece = own_pieces[from_index]
+    own_locations[from_index] = to_square
+    if to_square in enemy_locations:
+        captured = enemy_locations.index(to_square)
+        enemy_pieces.pop(captured)
+        enemy_locations.pop(captured)
+    elif moving_piece == 'pawn' and to_square == ep_square:
+        captured_square = (ep_square[0], ep_square[1] + ep_rank_step)
+        if captured_square in enemy_locations:
+            captured = enemy_locations.index(captured_square)
+            enemy_pieces.pop(captured)
+            enemy_locations.pop(captured)
+
+    king_square = to_square if moving_piece == 'king' else _king_square(own_pieces, own_locations)
+
+    white_pieces, white_locations = sim_white_pieces, sim_white_locations
+    black_pieces, black_locations = sim_black_pieces, sim_black_locations
+    try:
+        if king_square is None:
+            return False
+        enemy_turn = 'black' if mover_color == 'white' else 'white'
+        # include_castling=False: this is only an attack-map probe against a
+        # throwaway simulated board. Without this, check_options would also
+        # recompute (and overwrite) the real white_castle_moves/
+        # black_castle_moves globals with values based on the simulated
+        # board - and since this function runs on every candidate move for
+        # every piece each frame, that would constantly corrupt real
+        # castling state right after we restore the real piece lists below.
+        attacked_squares = check_options(enemy_pieces, enemy_locations, enemy_turn, include_castling=False)
+        return any(king_square in moves for moves in attacked_squares)
+    finally:
+        white_pieces, white_locations = real_white_pieces, real_white_locations
+        black_pieces, black_locations = real_black_pieces, real_black_locations
+
+
+def king_in_check(color):
+    if color == 'white':
+        king_square = _king_square(white_pieces, white_locations)
+        attacker_options = black_options
+    else:
+        king_square = _king_square(black_pieces, black_locations)
+        attacker_options = white_options
+    if king_square is None:
+        return False
+    return any(king_square in moves for moves in attacker_options)
+
+
+def has_any_legal_move(color):
+    if color == 'white':
+        pieces, options = white_pieces, white_options
+    else:
+        pieces, options = black_pieces, black_options
+    for i in range(len(pieces)):
+        for move in options[i]:
+            if not move_leaves_king_in_check(color, i, move):
+                return True
+    return False
+
+
+def evaluate_game_end(color_to_move):
+    """Call right after black_options/white_options are refreshed for the
+    side about to move - i.e. right after the attack map is generated, so
+    the check pop-up can never lag behind or miss a discovered check.
+
+    Authoritatively sets checkmate/stalemate (replacing any guess from
+    king-capture alone) and, per Section 2's revision, fires a dedicated
+    'check' pop-up that takes priority over (and merges with) the plain
+    turn-change pop-up when the side to move is in check but not mated."""
+    global game_over, winner, end_reason, check_flash_timer
+    in_check = king_in_check(color_to_move)
+    mover_label = color_to_move.capitalize()
+
+    if has_any_legal_move(color_to_move):
+        if in_check:
+            # Check pop-up takes priority over / merges with the turn pop-up
+            # that was already shown by the caller - this call supersedes it
+            # rather than stacking a second notification.
+            check_flash_timer = CHECK_FLASH_DURATION
+            show_popup(f"Check! {mover_label}'s turn", 'red')
+        return
+
+    game_over = True
+    if in_check:
+        winner = 'black' if color_to_move == 'white' else 'white'
+        end_reason = 'checkmate'
+        show_popup(f"Checkmate! {winner.capitalize()} wins!", 'gold')
+    else:
+        winner = 'draw'
+        end_reason = 'stalemate'
+        # Distinct, neutral draw pop-up - must never share copy/styling with
+        # the win banner (Section 3 revision).
+        show_popup('Stalemate - Game Drawn', 'light gray')
+
+
+# brief, distinct screen-edge flash that accompanies the check pop-up
+def draw_check_flash():
+    global check_flash_timer
+    if check_flash_timer > 0:
+        pygame.draw.rect(screen, 'red', [0, 0, px(800), px(800)], max(3, px(10)))
+        check_flash_timer -= 1
+
+
+# check for valid (and LEGAL - see above) moves for just the selected piece
 def check_valid_moves():
     if turn_step < 2:
         options_list = white_options
+        mover_color = 'white'
     else:
         options_list = black_options
-    valid_options = options_list[selection]
-    return valid_options
+        mover_color = 'black'
+    pseudo_legal = options_list[selection]
+    return [move for move in pseudo_legal if not move_leaves_king_in_check(mover_color, selection, move)]
 
 
 # draw valid moves on screen
@@ -280,19 +453,26 @@ def draw_valid(moves):
     else:
         color = 'blue'
     for i in range(len(moves)):
-        pygame.draw.circle(screen, color, (moves[i][0] * 100 + 50, moves[i][1] * 100 + 50), 5)
+        pygame.draw.circle(screen, color, (moves[i][0] * SQUARE + SQUARE // 2, moves[i][1] * SQUARE + SQUARE // 2), max(2, px(5)))
 
 
-# draw captured pieces on side of screen
+# draw captured pieces on side of screen, in two clearly separated trays
 def draw_captured():
+    # FIX (Section 6 QA note): captured_pieces_white holds the pieces WHITE
+    # has captured - i.e. pieces taken FROM black, so this tray is "Black
+    # lost". captured_pieces_black holds pieces taken FROM white, so that
+    # tray is "White lost". The headings were previously swapped.
+    screen.blit(font.render('Black lost', True, 'black'), (px(805), px(650)))
     for i in range(len(captured_pieces_white)):
         captured_piece = captured_pieces_white[i]
         index = piece_list.index(captured_piece)
-        screen.blit(small_black_images[index], (825, 5 + 50 * i))
+        screen.blit(small_black_images[index], (px(825), px(5) + px(50) * i))
+    pygame.draw.line(screen, 'black', (px(900), 0), (px(900), px(690)), max(1, px(2)))
+    screen.blit(font.render('White lost', True, 'black'), (px(905), px(650)))
     for i in range(len(captured_pieces_black)):
         captured_piece = captured_pieces_black[i]
         index = piece_list.index(captured_piece)
-        screen.blit(small_white_images[index], (925, 5 + 50 * i))
+        screen.blit(small_white_images[index], (px(925), px(5) + px(50) * i))
 
 
 # draw a flashing square around king if in check
@@ -307,8 +487,8 @@ def draw_check():
                 if king_location in black_options[i]:
                     check = True
                     if counter < 15:
-                        pygame.draw.rect(screen, 'dark red', [white_locations[king_index][0] * 100 + 1,
-                                                              white_locations[king_index][1] * 100 + 1, 100, 100], 5)
+                        pygame.draw.rect(screen, 'dark red', [white_locations[king_index][0] * SQUARE + px(1),
+                                                              white_locations[king_index][1] * SQUARE + px(1), SQUARE, SQUARE], max(2, px(5)))
     else:
         if 'king' in black_pieces:
             king_index = black_pieces.index('king')
@@ -317,14 +497,66 @@ def draw_check():
                 if king_location in white_options[i]:
                     check = True
                     if counter < 15:
-                        pygame.draw.rect(screen, 'dark blue', [black_locations[king_index][0] * 100 + 1,
-                                                               black_locations[king_index][1] * 100 + 1, 100, 100], 5)
+                        pygame.draw.rect(screen, 'dark blue', [black_locations[king_index][0] * SQUARE + px(1),
+                                                               black_locations[king_index][1] * SQUARE + px(1), SQUARE, SQUARE], max(2, px(5)))
 
 
 def draw_game_over():
-    pygame.draw.rect(screen, 'black', [200, 200, 400, 70])
-    screen.blit(font.render(f'{winner} won the game!', True, 'white'), (210, 210))
-    screen.blit(font.render(f'Press ENTER to Restart!', True, 'white'), (210, 240))
+    # flashing full-board overlay flash for a "grand win" moment
+    if counter < 15:
+        flash = pygame.Surface((px(800), HEIGHT))
+        flash.set_alpha(90)
+        flash.fill('gold' if winner != 'draw' else 'light gray')
+        screen.blit(flash, (0, 0))
+
+    box_width, box_height = px(560), px(160)
+    box_x = (px(800) - box_width) // 2
+    box_y = (px(800) - box_height) // 2
+    pygame.draw.rect(screen, 'black', [box_x, box_y, box_width, box_height])
+    pygame.draw.rect(screen, 'gold', [box_x, box_y, box_width, box_height], max(2, px(5)))
+
+    if winner == 'draw':
+        headline = 'Stalemate - Game Drawn'
+    elif end_reason == 'forfeit':
+        headline = f'{winner.capitalize()} Wins by Forfeit!'
+    else:
+        headline = f'Checkmate - {winner.capitalize()} Wins!'
+    headline_surface = medium_font.render(headline, True, 'white')
+    headline_rect = headline_surface.get_rect(center=(box_x + box_width // 2, box_y + px(45)))
+    screen.blit(headline_surface, headline_rect)
+
+    option_surface = font.render('ENTER: Rematch     ESC: Exit', True, 'white')
+    option_rect = option_surface.get_rect(center=(box_x + box_width // 2, box_y + px(100)))
+    screen.blit(option_surface, option_rect)
+
+
+# --- SECTION 3a: persistent winner tag ---------------------------------
+# Unlike the transient turn/check toasts, this badge is driven by the same
+# authoritative game_over/winner state as checkmate detection itself, and
+# stays on screen for as long as game_over is True - through the celebratory
+# flash fading, and through the Rematch/Exit choice - only clearing when a
+# new game actually starts. It lives in the sidebar (not on top of the
+# board) so it never obscures the mating position.
+#
+# Note: this codebase has no per-player name/clock panels yet (that's the
+# Section 8 "live clocks" territory), so this is a single centered badge
+# rather than a gold-badge-for-winner / greyed-out-panel-for-loser pair as
+# described - the win/draw distinction itself is still fully honored.
+def draw_winner_tag():
+    if not game_over:
+        return
+    if winner == 'draw':
+        text, badge_color, text_color = 'Draw', 'light gray', 'black'
+    else:
+        text, badge_color, text_color = f'Winner: {winner.capitalize()}', 'gold', 'black'
+    badge_w, badge_h = px(190), px(50)
+    badge_x = px(800) + (px(200) - badge_w) // 2
+    badge_y = px(10)
+    pygame.draw.rect(screen, 'black', [badge_x, badge_y, badge_w, badge_h])
+    pygame.draw.rect(screen, badge_color, [badge_x, badge_y, badge_w, badge_h], max(2, px(4)))
+    text_surface = font.render(text, True, text_color)
+    text_rect = text_surface.get_rect(center=(badge_x + badge_w // 2, badge_y + badge_h // 2))
+    screen.blit(text_surface, text_rect)
 
 
 # check en passant because people on the internet won't stop bugging me for it
@@ -346,58 +578,75 @@ def check_ep(old_coords, new_coords):
 
 
 # add castling
-def check_castling():
-    # king must not currently be in check, neither the rook nor king has moved previously, nothing between
-    # and the king does not pass through or finish on an attacked piece
-    castle_moves = []  # store each valid castle move as [((king_coords), (castle_coords))]
-    rook_indexes = []
-    rook_locations = []
-    king_index = 0
-    king_pos = (0, 0)
-    if turn_step > 1:
-        for i in range(len(white_pieces)):
-            if white_pieces[i] == 'rook':
-                rook_indexes.append(white_moved[i])
-                rook_locations.append(white_locations[i])
-            if white_pieces[i] == 'king':
-                king_index = i
-                king_pos = white_locations[i]
-        if not white_moved[king_index] and False in rook_indexes and not check:
-            for i in range(len(rook_indexes)):
-                castle = True
-                if rook_locations[i][0] > king_pos[0]:
-                    empty_squares = [(king_pos[0] + 1, king_pos[1]), (king_pos[0] + 2, king_pos[1]),
-                                     (king_pos[0] + 3, king_pos[1])]
-                else:
-                    empty_squares = [(king_pos[0] - 1, king_pos[1]), (king_pos[0] - 2, king_pos[1])]
-                for j in range(len(empty_squares)):
-                    if empty_squares[j] in white_locations or empty_squares[j] in black_locations or \
-                            empty_squares[j] in black_options or rook_indexes[i]:
-                        castle = False
-                if castle:
-                    castle_moves.append((empty_squares[1], empty_squares[0]))
+def check_castling(color):
+    """Return valid castle moves as [(king_destination, rook_destination), ...]
+    for the given color's king. A castle is only legal if:
+      - neither the king nor that specific rook has moved before (even if
+        either piece later moved back to its original square - the moved
+        flags are one-way switches, never reset by returning "home"),
+      - every square between the king and rook is empty,
+      - the king is not currently in check,
+      - the king does not pass through or land on a square under attack.
+
+    The opponent's attack map is recomputed fresh right here, rather than
+    trusting the ambient white_options/black_options globals - those can be
+    one move stale depending on call order, which would let castling briefly
+    ignore a check that was just delivered/revealed. include_castling=False
+    on that inner call stops it from recursing back into this function for
+    the opponent's own king (their castling options aren't attacks and are
+    irrelevant to this check anyway).
+    """
+    castle_moves = []
+    if color == 'white':
+        pieces, locations, moved = white_pieces, white_locations, white_moved
+        enemy_pieces, enemy_locations, enemy_color = black_pieces, black_locations, 'black'
     else:
-        for i in range(len(black_pieces)):
-            if black_pieces[i] == 'rook':
-                rook_indexes.append(black_moved[i])
-                rook_locations.append(black_locations[i])
-            if black_pieces[i] == 'king':
-                king_index = i
-                king_pos = black_locations[i]
-        if not black_moved[king_index] and False in rook_indexes and not check:
-            for i in range(len(rook_indexes)):
-                castle = True
-                if rook_locations[i][0] > king_pos[0]:
-                    empty_squares = [(king_pos[0] + 1, king_pos[1]), (king_pos[0] + 2, king_pos[1]),
-                                     (king_pos[0] + 3, king_pos[1])]
-                else:
-                    empty_squares = [(king_pos[0] - 1, king_pos[1]), (king_pos[0] - 2, king_pos[1])]
-                for j in range(len(empty_squares)):
-                    if empty_squares[j] in white_locations or empty_squares[j] in black_locations or \
-                            empty_squares[j] in white_options or rook_indexes[i]:
-                        castle = False
-                if castle:
-                    castle_moves.append((empty_squares[1], empty_squares[0]))
+        pieces, locations, moved = black_pieces, black_locations, black_moved
+        enemy_pieces, enemy_locations, enemy_color = white_pieces, white_locations, 'white'
+
+    if 'king' not in pieces:
+        return castle_moves
+    king_index = pieces.index('king')
+    king_pos = locations[king_index]
+    if moved[king_index]:
+        return castle_moves
+
+    enemy_attacks = check_options(enemy_pieces, enemy_locations, enemy_color, include_castling=False)
+
+    def attacked(square):
+        # BUGFIX: the old code tested `square in enemy_options`, but
+        # enemy_options is a list of per-piece move lists, not a flat set of
+        # attacked squares - a tuple can never equal one of those inner
+        # lists, so that test was always False and never actually blocked
+        # castling through/into check. This flattens it correctly.
+        return any(square in moves for moves in enemy_attacks)
+
+    if attacked(king_pos):
+        return castle_moves  # king is currently in check
+
+    for i in range(len(pieces)):
+        if pieces[i] != 'rook' or moved[i]:
+            continue
+        rook_pos = locations[i]
+        if rook_pos[1] != king_pos[1]:
+            continue  # must be on the same rank as the king
+        direction = 1 if rook_pos[0] > king_pos[0] else -1
+
+        # every square strictly between king and rook must be empty
+        between_squares = []
+        step = king_pos[0] + direction
+        while step != rook_pos[0]:
+            between_squares.append((step, king_pos[1]))
+            step += direction
+        if any(sq in white_locations or sq in black_locations for sq in between_squares):
+            continue
+
+        # the two squares the king actually crosses/lands on must be safe
+        king_path = [(king_pos[0] + direction, king_pos[1]), (king_pos[0] + 2 * direction, king_pos[1])]
+        if any(attacked(sq) for sq in king_path):
+            continue
+
+        castle_moves.append((king_path[1], king_path[0]))  # (king_destination, rook_destination)
     return castle_moves
 
 
@@ -407,13 +656,13 @@ def draw_castling(moves):
     else:
         color = 'blue'
     for i in range(len(moves)):
-        pygame.draw.circle(screen, color, (moves[i][0][0] * 100 + 50, moves[i][0][1] * 100 + 70), 8)
-        screen.blit(font.render('king', True, 'black'), (moves[i][0][0] * 100 + 30, moves[i][0][1] * 100 + 70))
-        pygame.draw.circle(screen, color, (moves[i][1][0] * 100 + 50, moves[i][1][1] * 100 + 70), 8)
+        pygame.draw.circle(screen, color, (moves[i][0][0] * SQUARE + SQUARE // 2, moves[i][0][1] * SQUARE + px(70)), max(2, px(8)))
+        screen.blit(font.render('king', True, 'black'), (moves[i][0][0] * SQUARE + px(30), moves[i][0][1] * SQUARE + px(70)))
+        pygame.draw.circle(screen, color, (moves[i][1][0] * SQUARE + SQUARE // 2, moves[i][1][1] * SQUARE + px(70)), max(2, px(8)))
         screen.blit(font.render('rook', True, 'black'),
-                    (moves[i][1][0] * 100 + 30, moves[i][1][1] * 100 + 70))
-        pygame.draw.line(screen, color, (moves[i][0][0] * 100 + 50, moves[i][0][1] * 100 + 70),
-                         (moves[i][1][0] * 100 + 50, moves[i][1][1] * 100 + 70), 2)
+                    (moves[i][1][0] * SQUARE + px(30), moves[i][1][1] * SQUARE + px(70)))
+        pygame.draw.line(screen, color, (moves[i][0][0] * SQUARE + SQUARE // 2, moves[i][0][1] * SQUARE + px(70)),
+                         (moves[i][1][0] * SQUARE + SQUARE // 2, moves[i][1][1] * SQUARE + px(70)), max(1, px(2)))
 
 
 # add pawn promotion
@@ -441,27 +690,27 @@ def check_promotion():
 
 
 def draw_promotion():
-    pygame.draw.rect(screen, 'dark gray', [800, 0, 200, 420])
+    pygame.draw.rect(screen, 'dark gray', [px(800), 0, px(200), px(420)])
     if white_promote:
         color = 'white'
         for i in range(len(white_promotions)):
             piece = white_promotions[i]
             index = piece_list.index(piece)
-            screen.blit(white_images[index], (860, 5 + 100 * i))
+            screen.blit(white_images[index], (px(860), px(5) + SQUARE * i))
     elif black_promote:
         color = 'black'
         for i in range(len(black_promotions)):
             piece = black_promotions[i]
             index = piece_list.index(piece)
-            screen.blit(black_images[index], (860, 5 + 100 * i))
-    pygame.draw.rect(screen, color, [800, 0, 200, 420], 8)
+            screen.blit(black_images[index], (px(860), px(5) + SQUARE * i))
+    pygame.draw.rect(screen, color, [px(800), 0, px(200), px(420)], max(2, px(8)))
 
 
 def check_promo_select():
     mouse_pos = pygame.mouse.get_pos()
     left_click = pygame.mouse.get_pressed()[0]
-    x_pos = mouse_pos[0] // 100
-    y_pos = mouse_pos[1] // 100
+    x_pos = mouse_pos[0] // SQUARE
+    y_pos = mouse_pos[1] // SQUARE
     if white_promote and left_click and x_pos > 7 and y_pos < 4:
         white_pieces[promo_index] = white_promotions[y_pos]
     elif black_promote and left_click and x_pos > 7 and y_pos < 4:
@@ -484,30 +733,34 @@ while run:
     draw_pieces()
     draw_captured()
     draw_check()
+    draw_check_flash()
     if not game_over:
         white_promote, black_promote, promo_index = check_promotion()
         if white_promote or black_promote:
             draw_promotion()
+            show_popup('Select a piece to promote to!', 'gold')
             check_promo_select()
     if selection != 100:
         valid_moves = check_valid_moves()
         draw_valid(valid_moves)
         if selected_piece == 'king':
-            draw_castling(castling_moves)
+            current_castle_moves = white_castle_moves if turn_step < 2 else black_castle_moves
+            draw_castling(current_castle_moves)
     draw_popup()
     # event handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not game_over:
-            x_coord = event.pos[0] // 100
-            y_coord = event.pos[1] // 100
+            x_coord = event.pos[0] // SQUARE
+            y_coord = event.pos[1] // SQUARE
             click_coords = (x_coord, y_coord)
             if turn_step <= 1:
                 previous_selection = selection
                 move_made = False
-                if click_coords == (8, 8) or click_coords == (9, 8):
+                if click_coords == (8, 7) or click_coords == (9, 7):
                     winner = 'black'
+                    end_reason = 'forfeit'
                 if click_coords in white_locations:
                     selection = white_locations.index(click_coords)
                     # check what piece is selected, so you can only draw castling moves if king is selected
@@ -523,6 +776,7 @@ while run:
                         captured_pieces_white.append(black_pieces[black_piece])
                         if black_pieces[black_piece] == 'king':
                             winner = 'white'
+                            end_reason = 'checkmate'
                         black_pieces.pop(black_piece)
                         black_locations.pop(black_piece)
                         black_moved.pop(black_piece)
@@ -540,10 +794,11 @@ while run:
                     valid_moves = []
                     move_made = True
                     show_popup("Black's Turn!", 'blue')
+                    evaluate_game_end('black')
                 # add option to castle
                 elif selection != 100 and selected_piece == 'king':
-                    for q in range(len(castling_moves)):
-                        if click_coords == castling_moves[q][0]:
+                    for q in range(len(white_castle_moves)):
+                        if click_coords == white_castle_moves[q][0]:
                             white_locations[selection] = click_coords
                             white_moved[selection] = True
                             if click_coords == (1, 0):
@@ -551,7 +806,8 @@ while run:
                             else:
                                 rook_coords = (7, 0)
                             rook_index = white_locations.index(rook_coords)
-                            white_locations[rook_index] = castling_moves[q][1]
+                            white_locations[rook_index] = white_castle_moves[q][1]
+                            white_moved[rook_index] = True
                             black_options = check_options(black_pieces, black_locations, 'black')
                             white_options = check_options(white_pieces, white_locations, 'white')
                             turn_step = 2
@@ -559,16 +815,18 @@ while run:
                             valid_moves = []
                             move_made = True
                             show_popup("Black's Turn!", 'blue')
+                            evaluate_game_end('black')
                 # warn the player if they clicked somewhere invalid while a piece was selected
                 if not move_made and previous_selection != 100 and selection == previous_selection \
                         and click_coords not in white_locations \
-                        and click_coords != (8, 8) and click_coords != (9, 8):
+                        and click_coords != (8, 7) and click_coords != (9, 7):
                     show_popup('Illegal Move!', 'orange')
             if turn_step > 1:
                 previous_selection = selection
                 move_made = False
-                if click_coords == (8, 8) or click_coords == (9, 8):
+                if click_coords == (8, 7) or click_coords == (9, 7):
                     winner = 'white'
+                    end_reason = 'forfeit'
                 if click_coords in black_locations:
                     selection = black_locations.index(click_coords)
                     # check what piece is selected, so you can only draw castling moves if king is selected
@@ -584,6 +842,7 @@ while run:
                         captured_pieces_black.append(white_pieces[white_piece])
                         if white_pieces[white_piece] == 'king':
                             winner = 'black'
+                            end_reason = 'checkmate'
                         white_pieces.pop(white_piece)
                         white_locations.pop(white_piece)
                         white_moved.pop(white_piece)
@@ -600,10 +859,11 @@ while run:
                     valid_moves = []
                     move_made = True
                     show_popup("White's Turn!", 'red')
+                    evaluate_game_end('white')
                 # add option to castle
                 elif selection != 100 and selected_piece == 'king':
-                    for q in range(len(castling_moves)):
-                        if click_coords == castling_moves[q][0]:
+                    for q in range(len(black_castle_moves)):
+                        if click_coords == black_castle_moves[q][0]:
                             black_locations[selection] = click_coords
                             black_moved[selection] = True
                             if click_coords == (1, 7):
@@ -611,7 +871,8 @@ while run:
                             else:
                                 rook_coords = (7, 7)
                             rook_index = black_locations.index(rook_coords)
-                            black_locations[rook_index] = castling_moves[q][1]
+                            black_locations[rook_index] = black_castle_moves[q][1]
+                            black_moved[rook_index] = True
                             black_options = check_options(black_pieces, black_locations, 'black')
                             white_options = check_options(white_pieces, white_locations, 'white')
                             turn_step = 0
@@ -619,15 +880,20 @@ while run:
                             valid_moves = []
                             move_made = True
                             show_popup("White's Turn!", 'red')
+                            evaluate_game_end('white')
                 # warn the player if they clicked somewhere invalid while a piece was selected
                 if not move_made and previous_selection != 100 and selection == previous_selection \
                         and click_coords not in black_locations \
-                        and click_coords != (8, 8) and click_coords != (9, 8):
+                        and click_coords != (8, 7) and click_coords != (9, 7):
                     show_popup('Illegal Move!', 'orange')
         if event.type == pygame.KEYDOWN and game_over:
+            if event.key == pygame.K_ESCAPE:
+                run = False
             if event.key == pygame.K_RETURN:
                 game_over = False
                 winner = ''
+                end_reason = ''
+                check_flash_timer = 0
                 white_pieces = ['rook', 'knight', 'bishop', 'king', 'queen', 'bishop', 'knight', 'rook',
                                 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn']
                 white_locations = [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0),
@@ -652,6 +918,7 @@ while run:
     if winner != '':
         game_over = True
         draw_game_over()
+        draw_winner_tag()
 
     pygame.display.flip()
 pygame.quit()
