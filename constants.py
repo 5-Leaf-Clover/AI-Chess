@@ -1,13 +1,26 @@
-import pygame
+mport pygame
 pygame.init()
 
-WIDTH = 1000
-HEIGHT = 900
+# --- UI SIZE CONTROL -------------------------------------------------------
+# The whole UI (board, sidebar, pieces, fonts, popups) was originally designed
+# around a 100px chess square. Change SCALE to shrink or grow the entire
+# interface - everything below derives from it, so nothing gets out of sync.
+SCALE = 0.85  # 1.0 = original size, 0.85 = 15% smaller, etc.
+SQUARE = round(100 * SCALE)  # size (in px) of one chess square
+
+
+def px(n):
+    """Scale a pixel value that was originally designed for a 100px square."""
+    return round(SQUARE * n / 100)
+
+
+WIDTH = px(1000)
+HEIGHT = px(800)  # bottom bar removed - forfeit button now lives in the sidebar
 screen = pygame.display.set_mode([WIDTH, HEIGHT])
 pygame.display.set_caption('Two-Player Pygame Chess!')
-font = pygame.font.Font('freesansbold.ttf', 20)
-medium_font = pygame.font.Font('freesansbold.ttf', 40)
-big_font = pygame.font.Font('freesansbold.ttf', 50)
+font = pygame.font.Font('freesansbold.ttf', px(20))
+medium_font = pygame.font.Font('freesansbold.ttf', px(40))
+big_font = pygame.font.Font('freesansbold.ttf', px(50))
 timer = pygame.time.Clock()
 fps = 60
 # game variables and images
@@ -27,41 +40,41 @@ selection = 100
 valid_moves = []
 # load in game piece images (queen, king, rook, bishop, knight, pawn) x 2
 black_queen = pygame.image.load('assets/images/black queen.png')
-black_queen = pygame.transform.scale(black_queen, (80, 80))
-black_queen_small = pygame.transform.scale(black_queen, (45, 45))
+black_queen = pygame.transform.scale(black_queen, (px(80), px(80)))
+black_queen_small = pygame.transform.scale(black_queen, (px(45), px(45)))
 black_king = pygame.image.load('assets/images/black king.png')
-black_king = pygame.transform.scale(black_king, (80, 80))
-black_king_small = pygame.transform.scale(black_king, (45, 45))
+black_king = pygame.transform.scale(black_king, (px(80), px(80)))
+black_king_small = pygame.transform.scale(black_king, (px(45), px(45)))
 black_rook = pygame.image.load('assets/images/black rook.png')
-black_rook = pygame.transform.scale(black_rook, (80, 80))
-black_rook_small = pygame.transform.scale(black_rook, (45, 45))
+black_rook = pygame.transform.scale(black_rook, (px(80), px(80)))
+black_rook_small = pygame.transform.scale(black_rook, (px(45), px(45)))
 black_bishop = pygame.image.load('assets/images/black bishop.png')
-black_bishop = pygame.transform.scale(black_bishop, (80, 80))
-black_bishop_small = pygame.transform.scale(black_bishop, (45, 45))
+black_bishop = pygame.transform.scale(black_bishop, (px(80), px(80)))
+black_bishop_small = pygame.transform.scale(black_bishop, (px(45), px(45)))
 black_knight = pygame.image.load('assets/images/black knight.png')
-black_knight = pygame.transform.scale(black_knight, (80, 80))
-black_knight_small = pygame.transform.scale(black_knight, (45, 45))
+black_knight = pygame.transform.scale(black_knight, (px(80), px(80)))
+black_knight_small = pygame.transform.scale(black_knight, (px(45), px(45)))
 black_pawn = pygame.image.load('assets/images/black pawn.png')
-black_pawn = pygame.transform.scale(black_pawn, (65, 65))
-black_pawn_small = pygame.transform.scale(black_pawn, (45, 45))
+black_pawn = pygame.transform.scale(black_pawn, (px(65), px(65)))
+black_pawn_small = pygame.transform.scale(black_pawn, (px(45), px(45)))
 white_queen = pygame.image.load('assets/images/white queen.png')
-white_queen = pygame.transform.scale(white_queen, (80, 80))
-white_queen_small = pygame.transform.scale(white_queen, (45, 45))
+white_queen = pygame.transform.scale(white_queen, (px(80), px(80)))
+white_queen_small = pygame.transform.scale(white_queen, (px(45), px(45)))
 white_king = pygame.image.load('assets/images/white king.png')
-white_king = pygame.transform.scale(white_king, (80, 80))
-white_king_small = pygame.transform.scale(white_king, (45, 45))
+white_king = pygame.transform.scale(white_king, (px(80), px(80)))
+white_king_small = pygame.transform.scale(white_king, (px(45), px(45)))
 white_rook = pygame.image.load('assets/images/white rook.png')
-white_rook = pygame.transform.scale(white_rook, (80, 80))
-white_rook_small = pygame.transform.scale(white_rook, (45, 45))
+white_rook = pygame.transform.scale(white_rook, (px(80), px(80)))
+white_rook_small = pygame.transform.scale(white_rook, (px(45), px(45)))
 white_bishop = pygame.image.load('assets/images/white bishop.png')
-white_bishop = pygame.transform.scale(white_bishop, (80, 80))
-white_bishop_small = pygame.transform.scale(white_bishop, (45, 45))
+white_bishop = pygame.transform.scale(white_bishop, (px(80), px(80)))
+white_bishop_small = pygame.transform.scale(white_bishop, (px(45), px(45)))
 white_knight = pygame.image.load('assets/images/white knight.png')
-white_knight = pygame.transform.scale(white_knight, (80, 80))
-white_knight_small = pygame.transform.scale(white_knight, (45, 45))
+white_knight = pygame.transform.scale(white_knight, (px(80), px(80)))
+white_knight_small = pygame.transform.scale(white_knight, (px(45), px(45)))
 white_pawn = pygame.image.load('assets/images/white pawn.png')
-white_pawn = pygame.transform.scale(white_pawn, (65, 65))
-white_pawn_small = pygame.transform.scale(white_pawn, (45, 45))
+white_pawn = pygame.transform.scale(white_pawn, (px(65), px(65)))
+white_pawn_small = pygame.transform.scale(white_pawn, (px(45), px(45)))
 white_images = [white_pawn, white_queen, white_king, white_knight, white_rook, white_bishop]
 white_promotions = ['bishop', 'knight', 'rook', 'queen']
 white_moved = [False, False, False, False, False, False, False, False,
@@ -85,9 +98,13 @@ white_promote = False
 black_promote = False
 promo_index = 100
 check = False
-castling_moves = []
+white_castle_moves = []  # this turn's valid castle moves for white's king
+black_castle_moves = []  # this turn's valid castle moves for black's king
 # pop-up message variables (turn notifications / illegal move warnings)
 popup_message = ''
 popup_color = 'gold'
 popup_timer = 0
 POPUP_DURATION = 90  # frames the pop-up stays visible (~1.5 sec at 60 fps)
+end_reason = ''  # 'checkmate', 'stalemate', or 'forfeit' - drives the game-over banner text
+check_flash_timer = 0  # brief red screen-edge flash when a check pop-up fires
+CHECK_FLASH_DURATION = 20
